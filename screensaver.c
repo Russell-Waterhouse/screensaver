@@ -12,14 +12,27 @@
 #include <wayland-util.h>
 #include "xdg-shell-client-protocol.h"
 
+
+#define BLACK 0xFF000000
+#define WHITE 0xFFFFFFFF
+
 typedef uint32_t u32;
+typedef uint16_t u16;
 typedef int32_t i32;
+
+typedef struct Point {
+  u16 x;
+  u16 y;
+  u16 x_speed;
+  u16 y_speed;
+} Point;
 
 uint32_t global_height = 1048;
 uint32_t global_width = 1920;
 uint32_t *global_pixel_data = NULL;
 size_t global_shm_size = 0;
 u32 global_pending_serial = 0;
+Point points[10];
 
 struct wl_display *global_display = NULL;
 struct wl_compositor *global_compositor = NULL;
@@ -124,9 +137,9 @@ void create_buffer() {
         exit(1);
     }
 
-    // Fill with white
+    // Fill with black
     for (int i = 0; i < global_width * global_height; ++i) {
-        global_pixel_data[i] = 0xFFFFFFFF; // white
+        global_pixel_data[i] = BLACK;
     }
 
     global_shm_pool = wl_shm_create_pool(global_shm, fd, global_shm_size);
@@ -178,13 +191,41 @@ int main() {
     wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
     wl_surface_commit(global_surface);
 
-    uint32_t color = 0;
+    Point P1 = {
+      .x = 0,
+      .y = 0,
+      .x_speed = 0,
+      .y_speed = 0,
+    };
+    Point P2 = {
+      .x = global_width,
+      .y = global_height,
+      .x_speed = 0,
+      .y_speed = 0,
+    };
+    global_pixel_data[P1.x + (P1.y * global_width)] = WHITE;
+    global_pixel_data[P2.x + (P2.y * global_width)] = WHITE;
+
+    double slope = (double)(P2.y - P1.y) / (double)(P2.x - P1.x);
+    printf("slope is %f\n", slope);
+    printf("Width: %d; height: %d\n", global_width, global_height);
+    for (i32 i = P1.x; i < P2.x; i++) {
+      double y = slope * i;
+      i32 y_i32 = (i32)y;
+      if (i < 25) {
+        printf("i: %d; y: %.2f; y_i32: %d\n", i, y, y_i32);
+      }
+      global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+    }
+
+
+
     // wl_display_dispatch returns -1 on failure
     while (wl_display_dispatch(global_display) != -1) {
       // Set pixel color, masked with full alpha
-      for (u32 i = 0; i < global_width * global_height; i++) {
-        global_pixel_data[i] = (color++ % 0x01000000) | 0xFF000000;
-      }
+      // for (u32 i = 0; i < global_width * global_height; i++) {
+      //   global_pixel_data[i] = (color++ % 0x01000000) | 0xFF000000;
+      // }
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
       wl_surface_commit(global_surface);
