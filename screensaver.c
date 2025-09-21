@@ -10,11 +10,11 @@
 #include <stdint.h>
 #include "xdg-shell-client-protocol.h"
 
-#define WIDTH 800
-#define HEIGHT 600
-
+uint32_t height = 600;
+uint32_t width = 800;
 uint32_t *pixel_data = NULL;
 size_t shm_size = 0;
+
 struct wl_display *display = NULL;
 struct wl_compositor *compositor = NULL;
 struct wl_shm *shm = NULL;
@@ -76,8 +76,8 @@ int create_shm_file(size_t size) {
 }
 
 void create_buffer() {
-    size_t stride = WIDTH * 4;
-    shm_size = stride * HEIGHT;
+    size_t stride = width * 4;
+    shm_size = stride * height;
 
     int fd = create_shm_file(shm_size);
     pixel_data = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -87,15 +87,19 @@ void create_buffer() {
     }
 
     // Fill with white
-    for (int i = 0; i < WIDTH * HEIGHT; ++i) {
+    for (int i = 0; i < width * height; ++i) {
         pixel_data[i] = 0xFFFFFFFF; // white
     }
 
     shm_pool = wl_shm_create_pool(shm, fd, shm_size);
-    buffer = wl_shm_pool_create_buffer(shm_pool, 0,
-                                       WIDTH, HEIGHT,
-                                       stride,
-                                       WL_SHM_FORMAT_ARGB8888);
+    buffer = wl_shm_pool_create_buffer(
+      shm_pool,
+      0,
+      width,
+      height,
+      stride,
+      WL_SHM_FORMAT_ARGB8888
+    );
 
     close(fd); // fd no longer needed after pool creation
 }
@@ -122,12 +126,13 @@ int main() {
     xdg_toplevel = xdg_surface_get_toplevel(xdg_surface);
     xdg_toplevel_set_title(xdg_toplevel, "Screensaver");
 
+
     wl_surface_commit(surface);
 
     create_buffer();
 
     wl_surface_attach(surface, buffer, 0, 0);
-    wl_surface_damage_buffer(surface, 0, 0, WIDTH, HEIGHT);
+    wl_surface_damage_buffer(surface, 0, 0, width, height);
     wl_surface_commit(surface);
 
     long int i = 0;
@@ -138,12 +143,13 @@ int main() {
         exit(0);
       }
 
-      // Set pixel color
-      pixel_data[i] = color++ | 0xFF000000;
-      wl_surface_damage_buffer(surface, 0, 0, WIDTH, HEIGHT);
+      // Set pixel color, masked with full alpha
+      pixel_data[i] = (color++ % 0x01000000) | 0xFF000000;
+      wl_surface_damage_buffer(surface, 0, 0, width, height);
       wl_surface_attach(surface, buffer, 0, 0);
       wl_surface_commit(surface);
-      i = (i + 1) % (WIDTH * HEIGHT);
+      i = (i + 1) % (width * height);
+      // usleep(5000); // sleep to slow down the loop (~200 FPS)
     }
 
     return 0;
