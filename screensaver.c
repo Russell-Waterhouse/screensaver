@@ -7,11 +7,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <wayland-client.h>
+#include <stdint.h>
 #include "xdg-shell-client-protocol.h"
 
 #define WIDTH 800
 #define HEIGHT 600
 
+uint32_t *pixel_data = NULL;
+size_t shm_size = 0;
 struct wl_display *display = NULL;
 struct wl_compositor *compositor = NULL;
 struct wl_shm *shm = NULL;
@@ -74,26 +77,29 @@ int create_shm_file(size_t size) {
 
 void create_buffer() {
     size_t stride = WIDTH * 4;
-    size_t size = stride * HEIGHT;
+    shm_size = stride * HEIGHT;
 
-    int fd = create_shm_file(size);
-    void *shm_data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (shm_data == MAP_FAILED) {
+    int fd = create_shm_file(shm_size);
+    pixel_data = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (pixel_data == MAP_FAILED) {
         perror("mmap failed");
         exit(1);
     }
 
-    // Fill buffer with white
-    memset(shm_data, 0xFF, size);  // 0xFF for white (ARGB: 0xFFFFFFFF)
+    // Fill with white
+    for (int i = 0; i < WIDTH * HEIGHT; ++i) {
+        pixel_data[i] = 0xFFFFFFFF; // white
+    }
 
-    shm_pool = wl_shm_create_pool(shm, fd, size);
+    shm_pool = wl_shm_create_pool(shm, fd, shm_size);
     buffer = wl_shm_pool_create_buffer(shm_pool, 0,
                                        WIDTH, HEIGHT,
                                        stride,
                                        WL_SHM_FORMAT_ARGB8888);
-    munmap(shm_data, size);
-    close(fd);
+
+    close(fd); // fd no longer needed after pool creation
 }
+
 
 int main() {
     display = wl_display_connect(NULL);
@@ -114,7 +120,7 @@ int main() {
     surface = wl_compositor_create_surface(compositor);
     xdg_surface = xdg_wm_base_get_xdg_surface(xdg_wm_base, surface);
     xdg_toplevel = xdg_surface_get_toplevel(xdg_surface);
-    xdg_toplevel_set_title(xdg_toplevel, "White Window");
+    xdg_toplevel_set_title(xdg_toplevel, "Screensaver");
 
     wl_surface_commit(surface);
 
@@ -124,8 +130,20 @@ int main() {
     wl_surface_damage_buffer(surface, 0, 0, WIDTH, HEIGHT);
     wl_surface_commit(surface);
 
-    while (wl_display_dispatch(display) != -1) {
-        // Main event loop
+    long int i = 0;
+    uint32_t color = 0;
+    while (1) {
+      int event = wl_display_dispatch(display);
+      if (event == -1) {
+        exit(0);
+      }
+
+      // Set pixel color
+      pixel_data[i] = color++ | 0xFF000000;
+      wl_surface_damage_buffer(surface, 0, 0, WIDTH, HEIGHT);
+      wl_surface_attach(surface, buffer, 0, 0);
+      wl_surface_commit(surface);
+      i = (i + 1) % (WIDTH * HEIGHT);
     }
 
     return 0;
