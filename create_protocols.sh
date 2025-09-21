@@ -2,7 +2,7 @@
 
 set -e
 
-mkdir protocols
+mkdir -p protocols
 
 cp /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml protocols/
 
