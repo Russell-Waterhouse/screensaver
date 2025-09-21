@@ -15,8 +15,8 @@
 typedef uint32_t u32;
 typedef int32_t i32;
 
-uint32_t global_height = 600;
-uint32_t global_width = 800;
+uint32_t global_height = 1048;
+uint32_t global_width = 1920;
 uint32_t *global_pixel_data = NULL;
 size_t global_shm_size = 0;
 u32 global_pending_serial = 0;
