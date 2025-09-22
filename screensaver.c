@@ -198,8 +198,8 @@ int main() {
       .y_speed = 0,
     };
     Point P2 = {
-      .x = global_width,
-      .y = global_height,
+      .x = global_width - 1,
+      .y = global_height - 1,
       .x_speed = 0,
       .y_speed = 0,
     };
