@@ -19,12 +19,13 @@
 typedef uint32_t u32;
 typedef uint16_t u16;
 typedef int32_t i32;
+typedef int16_t i16;
 
 typedef struct Point {
-  u16 x;
-  u16 y;
-  u16 x_speed;
-  u16 y_speed;
+  i16 x;
+  i16 y;
+  i16 x_speed;
+  i16 y_speed;
 } Point;
 
 uint32_t global_height = 1048;
@@ -43,6 +44,42 @@ struct xdg_surface *global_xdg_surface = NULL;
 struct xdg_toplevel *global_xdg_toplevel = NULL;
 struct wl_shm_pool *global_shm_pool = NULL;
 struct wl_buffer *global_buffer = NULL;
+
+Point nextPoint(Point* prevPoint) {
+  i16 next_x = prevPoint->x + prevPoint->x_speed;
+  i16 next_x_speed = prevPoint->x_speed;
+  if (next_x < 0) {
+    next_x *= -1;
+    next_x_speed *= -1;
+  }
+
+  if (next_x > global_width) {
+    i16 overshoot = next_x - global_width;
+    next_x = global_width - overshoot;
+    next_x_speed *= -1;
+  }
+
+  i16 next_y = prevPoint->y + prevPoint->y_speed;
+  i16 next_y_speed = prevPoint->y_speed;
+  if (next_y < 0) {
+    next_y *= -1;
+    next_y_speed *= -1;
+  }
+
+  if (next_y > global_height) {
+    i16 overshoot = next_y - global_height;
+    next_y = global_height - overshoot;
+    next_y_speed  *= -1;
+  }
+  Point p = {
+    .x = next_x,
+    .y = next_y,
+    .x_speed = next_x_speed,
+    .y_speed = next_y_speed,
+  };
+  return p;
+}
+
 
 static void xdg_wm_base_ping(void *data, struct xdg_wm_base *wm_base, uint32_t serial) {
   printf("xdg_wm_base_ping called\n");
@@ -194,14 +231,14 @@ int main() {
     Point P1 = {
       .x = 0,
       .y = 0,
-      .x_speed = 0,
-      .y_speed = 0,
+      .x_speed = 1,
+      .y_speed = 1,
     };
     Point P2 = {
       .x = global_width - 1,
       .y = global_height - 1,
-      .x_speed = 0,
-      .y_speed = 0,
+      .x_speed = -1,
+      .y_speed = -1,
     };
     global_pixel_data[P1.x + (P1.y * global_width)] = WHITE;
     global_pixel_data[P2.x + (P2.y * global_width)] = WHITE;
@@ -213,7 +250,6 @@ int main() {
       double y = slope * i;
       i32 y_i32 = (i32)y;
       if (i < 25) {
-        printf("i: %d; y: %.2f; y_i32: %d\n", i, y, y_i32);
       }
       global_pixel_data[i + (y_i32 * global_width)] = WHITE;
     }
@@ -223,9 +259,18 @@ int main() {
     // wl_display_dispatch returns -1 on failure
     while (wl_display_dispatch(global_display) != -1) {
       // Set pixel color, masked with full alpha
-      // for (u32 i = 0; i < global_width * global_height; i++) {
-      //   global_pixel_data[i] = (color++ % 0x01000000) | 0xFF000000;
-      // }
+      for (u32 i = 0; i < global_width * global_height; i++) {
+        global_pixel_data[i] = BLACK;
+      }
+      P1 = nextPoint(&P1);
+      P2 = nextPoint(&P2);
+      for (i32 i = P1.x; i < P2.x; i++) {
+        double y = slope * i;
+        i32 y_i32 = (i32)y;
+        if (i < 25) {
+        }
+        global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+      }
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
       wl_surface_commit(global_surface);
