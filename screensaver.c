@@ -15,6 +15,7 @@
 
 #define BLACK 0xFF000000
 #define WHITE 0xFFFFFFFF
+#define NUM_POINTS 10
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -34,12 +35,13 @@ typedef struct Point {
 void print_point(Point* p) {
   printf("Point: x: %d; y: %d; x_speed: %d; y_speed: %d\n", p->x, p->y, p->x_speed, p->y_speed);
 }
+
 uint32_t global_height = 1048;
 uint32_t global_width = 1920;
 uint32_t *global_pixel_data = NULL;
 size_t global_shm_size = 0;
 u32 global_pending_serial = 0;
-Point points[10];
+Point points[NUM_POINTS];
 
 struct wl_display *global_display = NULL;
 struct wl_compositor *global_compositor = NULL;
@@ -245,30 +247,29 @@ int main() {
     Point P1 = {
       .x = rand() % global_width,
       .y = rand() % global_height,
-      .x_speed = ((rand() % 100) * 0.01) + 1,
-      .y_speed = ((rand() % 100) * 0.01) + 1,
+      .x_speed = (rand() % 5) + 1,
+      .y_speed = (rand() % 5) + 1,
     };
     Point P2 = {
       .x = rand() % global_width,
       .y = rand() % global_height,
-      .x_speed = -1,
-      .y_speed = -1,
+      .x_speed = (rand() % 5) + 1,
+      .y_speed = (rand() % 5) + 1,
     };
     print_point(&P1);
     print_point(&P2);
     global_pixel_data[P1.x + (P1.y * global_width)] = WHITE;
     global_pixel_data[P2.x + (P2.y * global_width)] = WHITE;
 
-    long double slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
-    printf("slope is %Lf\n", slope);
-    printf("Width: %d; height: %d\n", global_width, global_height);
-    for (i32 i = P1.x; i < P2.x; i++) {
-      long double y = slope * i;
-      i32 y_i32 = (i32)y;
-      if (i < 25) {
-      }
-      global_pixel_data[i + (y_i32 * global_width)] = WHITE;
-    }
+          long double slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
+
+          for (i32 i = P1.x; i < P2.x; i++) {
+            long double y = slope * i;
+            i32 y_i32 = (i32)y;
+            if (i < 25) {
+            }
+            global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+          }
 
 
 
@@ -280,38 +281,38 @@ int main() {
       }
       P1 = nextPoint(&P1);
       P2 = nextPoint(&P2);
-      i32 lower_x = P1.x;
-      i32 upper_x = P2.x;
-      if (P2.x < P1.x) {
-        lower_x = P2.x;
-        upper_x = P1.x;
-      }
+          i32 lower_x = P1.x;
+          i32 upper_x = P2.x;
+          if (P2.x < P1.x) {
+            lower_x = P2.x;
+            upper_x = P1.x;
+          }
 
-      i32 lower_y = P1.y;
-      i32 upper_y = P2.y;
-      if (P2.y < P1.y) {
-        lower_y = P2.y;
-        upper_y = P1.y;
-      }
+          i32 lower_y = P1.y;
+          i32 upper_y = P2.y;
+          if (P2.y < P1.y) {
+            lower_y = P2.y;
+            upper_y = P1.y;
+          }
 
-      slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
-      long double b = P1.y - (slope * P1.x);
-      for (i32 i = lower_x; i < upper_x; i++) {
-        long double y = (slope * i) + b;
-        i32 y_i32 = (i32)y;
-        // print_point(&P1);
-        // print_point(&P2);
-        // // floating point fuckery means even if both points y coords are
-        // // less than global height, y_i32 could be greater than 
-        // if (y_i32 >= global_height) {
-        //   y_i32 = global_height - 1;
+          slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
+          long double b = P1.y - (slope * P1.x);
+          for (i32 i = lower_x; i < upper_x; i++) {
+            long double y = (slope * i) + b;
+            i32 y_i32 = (i32)y;
+            if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
+              printf("Invalid values\n");
+              print_point(&P1);
+              print_point(&P2);
+              printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
+              exit(-1);
+            }
+            // printf("Printing pixel\n");
+            global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+          // }
+          // points[i] = nextPoint(&P1);
+          // points[j] = nextPoint(&P2);
         // }
-        // printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
-        if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
-          printf("Invalid values\n");
-          exit(-1);
-        }
-        global_pixel_data[i + (y_i32 * global_width)] = WHITE;
       }
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
