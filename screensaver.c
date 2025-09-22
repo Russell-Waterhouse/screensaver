@@ -41,7 +41,7 @@ uint32_t global_width = 1920;
 uint32_t *global_pixel_data = NULL;
 size_t global_shm_size = 0;
 u32 global_pending_serial = 0;
-Point points[NUM_POINTS];
+Point global_points[NUM_POINTS];
 
 struct wl_display *global_display = NULL;
 struct wl_compositor *global_compositor = NULL;
@@ -244,6 +244,14 @@ int main() {
     wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
     wl_surface_commit(global_surface);
 
+    for (u8 i = 0; i < NUM_POINTS; i++) {
+      global_points[i].x = rand() % global_width;
+      global_points[i].y = rand() % global_height;
+      global_points[i].x_speed = (rand() % 5) + 1;
+      global_points[i].y_speed = (rand() % 5) + 1;
+      print_point(&global_points[i]);
+    }
+
     Point P1 = {
       .x = rand() % global_width,
       .y = rand() % global_height,
@@ -261,15 +269,15 @@ int main() {
     global_pixel_data[P1.x + (P1.y * global_width)] = WHITE;
     global_pixel_data[P2.x + (P2.y * global_width)] = WHITE;
 
-          long double slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
+    long double slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
 
-          for (i32 i = P1.x; i < P2.x; i++) {
-            long double y = slope * i;
-            i32 y_i32 = (i32)y;
-            if (i < 25) {
-            }
-            global_pixel_data[i + (y_i32 * global_width)] = WHITE;
-          }
+    for (i32 i = P1.x; i < P2.x; i++) {
+      long double y = slope * i;
+      i32 y_i32 = (i32)y;
+      if (i < 25) {
+      }
+      global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+    }
 
 
 
