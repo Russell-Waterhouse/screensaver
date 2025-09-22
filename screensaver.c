@@ -307,12 +307,7 @@ int main() {
               printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
               exit(-1);
             }
-            // printf("Printing pixel\n");
             global_pixel_data[i + (y_i32 * global_width)] = WHITE;
-          // }
-          // points[i] = nextPoint(&P1);
-          // points[j] = nextPoint(&P2);
-        // }
       }
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
