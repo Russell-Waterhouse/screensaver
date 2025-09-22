@@ -16,10 +16,13 @@
 #define BLACK 0xFF000000
 #define WHITE 0xFFFFFFFF
 
-typedef uint32_t u32;
+typedef uint8_t u8;
 typedef uint16_t u16;
-typedef int32_t i32;
+typedef uint32_t u32;
+
+typedef int8_t i8;
 typedef int16_t i16;
+typedef int32_t i32;
 
 typedef struct Point {
   i16 x;
@@ -53,8 +56,8 @@ Point nextPoint(Point* prevPoint) {
     next_x_speed *= -1;
   }
 
-  if (next_x > global_width) {
-    i16 overshoot = next_x - global_width;
+  if (next_x >= global_width) {
+    i16 overshoot = next_x - (global_width - 1);
     next_x = global_width - overshoot;
     next_x_speed *= -1;
   }
@@ -67,7 +70,7 @@ Point nextPoint(Point* prevPoint) {
   }
 
   if (next_y > global_height) {
-    i16 overshoot = next_y - global_height;
+    i16 overshoot = next_y - (global_height);
     next_y = global_height - overshoot;
     next_y_speed  *= -1;
   }
@@ -77,6 +80,15 @@ Point nextPoint(Point* prevPoint) {
     .x_speed = next_x_speed,
     .y_speed = next_y_speed,
   };
+
+  if (p.x >= global_width || p.y > global_height) {
+    fprintf(stderr, "GLOBAL WIDTH OR GLOBAL HEIGHT OVERFLOW\n");
+    printf("x: %d, global_width: %d, y: %d, global_height: %d\n", p.x, global_width, p.y, global_height);
+    fflush(stderr);
+    fflush(stdout);
+    exit(-1);
+  }
+
   return p;
 }
 
@@ -264,7 +276,21 @@ int main() {
       }
       P1 = nextPoint(&P1);
       P2 = nextPoint(&P2);
-      for (i32 i = P1.x; i < P2.x; i++) {
+      i32 lower_x = P1.x;
+      i32 upper_x = P2.x;
+      if (P2.x < P1.x) {
+        lower_x = P2.x;
+        upper_x = P1.x;
+      }
+
+      i32 lower_y = P1.y;
+      i32 upper_y = P2.y;
+      if (P2.y < P1.y) {
+        lower_y = P2.y;
+        upper_y = P1.y;
+      }
+
+      for (i32 i = lower_x; i <= upper_x; i++) {
         double y = slope * i;
         i32 y_i32 = (i32)y;
         if (i < 25) {
