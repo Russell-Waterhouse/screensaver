@@ -15,7 +15,7 @@
 
 #define BLACK 0xFF000000
 #define WHITE 0xFFFFFFFF
-#define NUM_POINTS 2
+#define NUM_POINTS 7
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -99,8 +99,6 @@ Point nextPoint(Point* prevPoint) {
 
 
 static void xdg_wm_base_ping(void *data, struct xdg_wm_base *wm_base, uint32_t serial) {
-  printf("xdg_wm_base_ping called\n");
-  fflush(stdout);
   xdg_wm_base_pong(wm_base, serial);
 }
 
@@ -244,11 +242,18 @@ int main() {
     wl_surface_commit(global_surface);
 
     for (u8 i = 0; i < NUM_POINTS; i++) {
+      i8 new_x_speed = (rand() & 0x03) + 1;
+      i8 new_y_speed = (rand() & 0x03) + 1;
+      if (rand() & 0x01) {
+        new_x_speed *= -1;
+      }
+      if (rand() & 0x01) {
+        new_y_speed *= -1;
+      }
       global_points[i].x = rand() % global_width;
       global_points[i].y = rand() % global_height;
-      global_points[i].x_speed = (rand() % 5) + 1;
-      global_points[i].y_speed = (rand() % 5) + 1;
-      print_point(&global_points[i]);
+      global_points[i].x_speed = new_x_speed;
+      global_points[i].y_speed = new_y_speed;
     }
 
     // Each line has a max number of pixels of `global_width` because
@@ -307,7 +312,7 @@ int main() {
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
       wl_surface_commit(global_surface);
-      usleep(5000); // sleep to slow down the loop (~200 FPS)
+      usleep(25000); // sleep to slow down the loop (~200 FPS)
     }
     fprintf(stderr, "ERROR: wl_display_dispatch failed\n");
     exit(-1);
