@@ -251,11 +251,8 @@ int main() {
       print_point(&global_points[i]);
     }
 
-    Point P1 = global_points[0];
-    Point P2 = global_points[1];
-
-    // ten lines, each with a max number of pizels of `global_width` because
-    // I'm assigning one pixel per x index
+    // Each line has a max number of pixels of `global_width` because
+    // I'm assigning one pixel per x index.
     u32 prev_frame_white_pixels_len = global_width * num_lines;
     size_t* prev_frame_white_pixels = calloc(sizeof(size_t), prev_frame_white_pixels_len);
     for (u32 i = 0; i < global_width * global_height; i++) {
@@ -269,32 +266,32 @@ int main() {
       for (u32 i = 0; i < prev_frame_white_pixels_len; i++) {
         global_pixel_data[prev_frame_white_pixels[i]] = BLACK;
       }
+      global_points[0] = nextPoint(&global_points[0]);
+      global_points[1] = nextPoint(&global_points[1]);
       u32 prev_frame_white_pixels_index = 0;
-      P1 = nextPoint(&P1);
-      P2 = nextPoint(&P2);
-      i32 lower_x = P1.x;
-      i32 upper_x = P2.x;
-      if (P2.x < P1.x) {
-        lower_x = P2.x;
-        upper_x = P1.x;
+      i32 lower_x = global_points[0].x;
+      i32 upper_x = global_points[1].x;
+      if (global_points[1].x < global_points[0].x) {
+        lower_x = global_points[1].x;
+        upper_x = global_points[0].x;
       }
 
-      i32 lower_y = P1.y;
-      i32 upper_y = P2.y;
-      if (P2.y < P1.y) {
-        lower_y = P2.y;
-        upper_y = P1.y;
+      i32 lower_y = global_points[0].y;
+      i32 upper_y = global_points[1].y;
+      if (global_points[1].y < global_points[0].y) {
+        lower_y = global_points[1].y;
+        upper_y = global_points[0].y;
       }
 
-      slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
-      long double b = P1.y - (slope * P1.x);
+      slope = (long double)(global_points[1].y - global_points[0].y) / (long double)(global_points[1].x - global_points[0].x);
+      long double b = global_points[0].y - (slope * global_points[0].x);
       for (i32 i = lower_x; i < upper_x; i++) {
         long double y = (slope * i) + b;
         i32 y_i32 = (i32)y;
         if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
           printf("Invalid values\n");
-          print_point(&P1);
-          print_point(&P2);
+          print_point(&global_points[0]);
+          print_point(&global_points[1]);
           printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
           exit(-1);
         }
