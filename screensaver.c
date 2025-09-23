@@ -252,14 +252,7 @@ int main() {
     }
 
     Point P1 = global_points[0];
-
     Point P2 = global_points[1];
-    print_point(&P1);
-    print_point(&P2);
-    global_pixel_data[P1.x + (P1.y * global_width)] = WHITE;
-    global_pixel_data[P2.x + (P2.y * global_width)] = WHITE;
-
-    long double slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
 
     // ten lines, each with a max number of pizels of `global_width` because
     // I'm assigning one pixel per x index
@@ -269,6 +262,7 @@ int main() {
       global_pixel_data[i] = BLACK;
     }
 
+    long double slope;
     // wl_display_dispatch returns -1 on failure
     while (wl_display_dispatch(global_display) != -1) {
       // Set pixel color, masked with full alpha
