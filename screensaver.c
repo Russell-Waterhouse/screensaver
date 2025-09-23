@@ -140,8 +140,6 @@ static void registry_handler(
   const char *interface,
   uint32_t version
 ) {
-    printf("registry_handler called\n");
-    fflush(stdout);
     if (strcmp(interface, wl_compositor_interface.name) == 0) {
         global_compositor = wl_registry_bind(registry, id, &wl_compositor_interface, 4);
     } else if (strcmp(interface, wl_shm_interface.name) == 0) {
@@ -252,18 +250,9 @@ int main() {
       print_point(&global_points[i]);
     }
 
-    Point P1 = {
-      .x = rand() % global_width,
-      .y = rand() % global_height,
-      .x_speed = (rand() % 5) + 1,
-      .y_speed = (rand() % 5) + 1,
-    };
-    Point P2 = {
-      .x = rand() % global_width,
-      .y = rand() % global_height,
-      .x_speed = (rand() % 5) + 1,
-      .y_speed = (rand() % 5) + 1,
-    };
+    Point P1 = global_points[0];
+
+    Point P2 = global_points[1];
     print_point(&P1);
     print_point(&P2);
     global_pixel_data[P1.x + (P1.y * global_width)] = WHITE;
@@ -321,7 +310,6 @@ int main() {
       wl_surface_attach(global_surface, global_buffer, 0, 0);
       wl_surface_commit(global_surface);
       usleep(5000); // sleep to slow down the loop (~200 FPS)
-      // printf("Main loop iteration");
     }
     fprintf(stderr, "ERROR: wl_display_dispatch failed\n");
     exit(-1);
