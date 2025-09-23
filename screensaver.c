@@ -15,7 +15,7 @@
 
 #define BLACK 0xFF000000
 #define WHITE 0xFFFFFFFF
-#define NUM_POINTS 10
+#define NUM_POINTS 2
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -36,6 +36,7 @@ void print_point(Point* p) {
   printf("Point: x: %d; y: %d; x_speed: %d; y_speed: %d\n", p->x, p->y, p->x_speed, p->y_speed);
 }
 
+u8 num_lines = (NUM_POINTS * (NUM_POINTS - 1)) / 2;
 uint32_t global_height = 1048;
 uint32_t global_width = 1920;
 uint32_t *global_pixel_data = NULL;
@@ -260,51 +261,52 @@ int main() {
 
     long double slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
 
-    for (i32 i = P1.x; i < P2.x; i++) {
-      long double y = slope * i;
-      i32 y_i32 = (i32)y;
-      if (i < 25) {
-      }
-      global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+    // ten lines, each with a max number of pizels of `global_width` because
+    // I'm assigning one pixel per x index
+    u32 prev_frame_white_pixels_len = global_width * num_lines;
+    size_t* prev_frame_white_pixels = calloc(sizeof(size_t), prev_frame_white_pixels_len);
+    for (u32 i = 0; i < global_width * global_height; i++) {
+      global_pixel_data[i] = BLACK;
     }
-
-
 
     // wl_display_dispatch returns -1 on failure
     while (wl_display_dispatch(global_display) != -1) {
       // Set pixel color, masked with full alpha
-      for (u32 i = 0; i < global_width * global_height; i++) {
-        global_pixel_data[i] = BLACK;
+      for (u32 i = 0; i < prev_frame_white_pixels_len; i++) {
+        global_pixel_data[prev_frame_white_pixels[i]] = BLACK;
       }
+      u32 prev_frame_white_pixels_index = 0;
       P1 = nextPoint(&P1);
       P2 = nextPoint(&P2);
-          i32 lower_x = P1.x;
-          i32 upper_x = P2.x;
-          if (P2.x < P1.x) {
-            lower_x = P2.x;
-            upper_x = P1.x;
-          }
+      i32 lower_x = P1.x;
+      i32 upper_x = P2.x;
+      if (P2.x < P1.x) {
+        lower_x = P2.x;
+        upper_x = P1.x;
+      }
 
-          i32 lower_y = P1.y;
-          i32 upper_y = P2.y;
-          if (P2.y < P1.y) {
-            lower_y = P2.y;
-            upper_y = P1.y;
-          }
+      i32 lower_y = P1.y;
+      i32 upper_y = P2.y;
+      if (P2.y < P1.y) {
+        lower_y = P2.y;
+        upper_y = P1.y;
+      }
 
-          slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
-          long double b = P1.y - (slope * P1.x);
-          for (i32 i = lower_x; i < upper_x; i++) {
-            long double y = (slope * i) + b;
-            i32 y_i32 = (i32)y;
-            if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
-              printf("Invalid values\n");
-              print_point(&P1);
-              print_point(&P2);
-              printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
-              exit(-1);
-            }
-            global_pixel_data[i + (y_i32 * global_width)] = WHITE;
+      slope = (long double)(P2.y - P1.y) / (long double)(P2.x - P1.x);
+      long double b = P1.y - (slope * P1.x);
+      for (i32 i = lower_x; i < upper_x; i++) {
+        long double y = (slope * i) + b;
+        i32 y_i32 = (i32)y;
+        if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
+          printf("Invalid values\n");
+          print_point(&P1);
+          print_point(&P2);
+          printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
+          exit(-1);
+        }
+        size_t index = i + (y_i32 * global_width);
+        global_pixel_data[index] = WHITE;
+        prev_frame_white_pixels[prev_frame_white_pixels_index++] = index;
       }
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
