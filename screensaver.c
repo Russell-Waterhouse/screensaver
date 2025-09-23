@@ -266,38 +266,43 @@ int main() {
       for (u32 i = 0; i < prev_frame_white_pixels_len; i++) {
         global_pixel_data[prev_frame_white_pixels[i]] = BLACK;
       }
-      global_points[0] = nextPoint(&global_points[0]);
-      global_points[1] = nextPoint(&global_points[1]);
+
       u32 prev_frame_white_pixels_index = 0;
-      i32 lower_x = global_points[0].x;
-      i32 upper_x = global_points[1].x;
-      if (global_points[1].x < global_points[0].x) {
-        lower_x = global_points[1].x;
-        upper_x = global_points[0].x;
-      }
+      for (u8 j = 0; j < NUM_POINTS - 1; j++) {
+        for (u8 k = j + 1; k < NUM_POINTS; k++) {
+          global_points[j] = nextPoint(&global_points[j]);
+          global_points[k] = nextPoint(&global_points[k]);
+          i32 lower_x = global_points[j].x;
+          i32 upper_x = global_points[k].x;
+          if (global_points[k].x < global_points[j].x) {
+            lower_x = global_points[k].x;
+            upper_x = global_points[j].x;
+          }
 
-      i32 lower_y = global_points[0].y;
-      i32 upper_y = global_points[1].y;
-      if (global_points[1].y < global_points[0].y) {
-        lower_y = global_points[1].y;
-        upper_y = global_points[0].y;
-      }
+          i32 lower_y = global_points[j].y;
+          i32 upper_y = global_points[k].y;
+          if (global_points[k].y < global_points[j].y) {
+            lower_y = global_points[k].y;
+            upper_y = global_points[j].y;
+          }
 
-      slope = (long double)(global_points[1].y - global_points[0].y) / (long double)(global_points[1].x - global_points[0].x);
-      long double b = global_points[0].y - (slope * global_points[0].x);
-      for (i32 i = lower_x; i < upper_x; i++) {
-        long double y = (slope * i) + b;
-        i32 y_i32 = (i32)y;
-        if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
-          printf("Invalid values\n");
-          print_point(&global_points[0]);
-          print_point(&global_points[1]);
-          printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
-          exit(-1);
+          slope = (long double)(global_points[k].y - global_points[j].y) / (long double)(global_points[k].x - global_points[j].x);
+          long double b = global_points[j].y - (slope * global_points[j].x);
+          for (i32 i = lower_x; i < upper_x; i++) {
+            long double y = (slope * i) + b;
+            i32 y_i32 = (i32)y;
+            if (i < 0 || i >= global_width || y_i32 < 0 || y_i32 >= global_height) {
+              printf("Invalid values\n");
+              print_point(&global_points[j]);
+              print_point(&global_points[k]);
+              printf("i: %d, y: %.4Lf, slope: %.4Lf, b: %.4Lf, y_i32: %d, global_width: %d, global_height: %d\n", i, y, slope, b, y_i32, global_width, global_height);
+              exit(-1);
+            }
+            size_t index = i + (y_i32 * global_width);
+            global_pixel_data[index] = WHITE;
+            prev_frame_white_pixels[prev_frame_white_pixels_index++] = index;
+          }
         }
-        size_t index = i + (y_i32 * global_width);
-        global_pixel_data[index] = WHITE;
-        prev_frame_white_pixels[prev_frame_white_pixels_index++] = index;
       }
       wl_surface_damage_buffer(global_surface, 0, 0, global_width, global_height);
       wl_surface_attach(global_surface, global_buffer, 0, 0);
